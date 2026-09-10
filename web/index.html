@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>掌柜问数 · NL2SQL 智能数据分析</title>
+<style>
+  :root { --bg:#0f1420; --panel:#1a2233; --line:#2a3550; --text:#e8ecf5; --muted:#8b96ad; --accent:#4f8cff; --ok:#3fbf7f; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:"PingFang SC","Microsoft YaHei",sans-serif; padding:24px; }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 { font-size:22px; margin-bottom:4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:20px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:14px; }
+  .row { display:flex; gap:10px; }
+  input { flex:1; background:#0d1220; border:1px solid var(--line); border-radius:8px; padding:12px 14px; color:var(--text); font-size:15px; outline:none; }
+  input:focus { border-color:var(--accent); }
+  button { background:var(--accent); border:none; border-radius:8px; color:#fff; padding:12px 22px; font-size:15px; cursor:pointer; }
+  button:disabled { opacity:.5; }
+  .tags { margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; }
+  .tag { font-size:12px; color:var(--muted); border:1px solid var(--line); border-radius:20px; padding:4px 12px; cursor:pointer; }
+  .tag:hover { color:var(--text); border-color:var(--accent); }
+  .meta { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+  .chip { font-size:12px; background:#0d1220; border:1px solid var(--line); border-radius:6px; padding:3px 10px; color:var(--muted); }
+  .chip b { color:var(--accent); font-weight:600; }
+  .answer { font-size:16px; line-height:1.6; }
+  pre.sql { background:#0d1220; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; overflow-x:auto; color:#a8d0ff; margin-top:10px; white-space:pre-wrap; }
+  table { width:100%; border-collapse:collapse; margin-top:10px; font-size:14px; }
+  th, td { border:1px solid var(--line); padding:7px 10px; text-align:left; }
+  th { background:#0d1220; color:var(--muted); font-weight:500; }
+  .hide { display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>掌柜问数</h1>
+  <div class="sub">NL2SQL 智能数据分析系统 · 意图识别(DIET) → Schema Linking → SQL 生成 → 执行 → 结构化返回</div>
+
+  <div class="card">
+    <div class="row">
+      <input id="q" placeholder="试试：上个月的销售额是多少 / 龙井茶还有多少库存 / 卖得最好的前5个商品" onkeydown="if(event.key==='Enter')doAsk()">
+      <button id="btn" onclick="doAsk()">查询</button>
+    </div>
+    <div class="tags">
+      <span class="tag" onclick="fill('上个月的销售额是多少')">上个月的销售额是多少</span>
+      <span class="tag" onclick="fill('近7天每天的销售额')">近7天每天的销售额</span>
+      <span class="tag" onclick="fill('卖得最好的前5个商品')">卖得最好的前5个商品</span>
+      <span class="tag" onclick="fill('龙井茶还有多少库存')">龙井茶还有多少库存</span>
+      <span class="tag" onclick="fill('哪些商品库存不足')">哪些商品库存不足</span>
+      <span class="tag" onclick="fill('会员有多少人')">会员有多少人</span>
+      <span class="tag" onclick="fill('今天天气怎么样')">拒答测试</span>
+    </div>
+  </div>
+
+  <div class="card hide" id="result">
+    <div class="meta">
+      <span class="chip">意图 <b id="m-intent"></b></span>
+      <span class="chip">置信度 <b id="m-conf"></b></span>
+      <span class="chip">生成引擎 <b id="m-engine"></b></span>
+      <span class="chip">Linking 表 <b id="m-tables"></b></span>
+    </div>
+    <div class="answer" id="answer"></div>
+    <pre class="sql" id="sql"></pre>
+    <div id="tablebox"></div>
+  </div>
+</div>
+
+<script>
+const INTENT_ZH = {sales_query:"销售额查询", trend_query:"销售趋势", topn_query:"排行查询",
+  inventory_query:"库存查询", stock_alert:"库存预警", customer_query:"客户查询",
+  order_query:"订单查询", product_query:"商品查询", chitchat:"无关闲聊"};
+
+function fill(t){ document.getElementById('q').value = t; doAsk(); }
+
+async function doAsk(){
+  const q = document.getElementById('q').value.trim();
+  if(!q) return;
+  const btn = document.getElementById('btn');
+  btn.disabled = true; btn.textContent = '分析中…';
+  try{
+    const r = await fetch('/api/ask', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({question: q})});
+    const d = await r.json();
+    document.getElementById('result').classList.remove('hide');
+    document.getElementById('m-intent').textContent = (INTENT_ZH[d.intent]||d.intent);
+    document.getElementById('m-conf').textContent = d.confidence;
+    document.getElementById('m-engine').textContent = d.engine;
+    document.getElementById('m-tables').textContent = (d.linked_tables||[]).join(', ') || '-';
+    document.getElementById('answer').textContent = d.answer;
+    document.getElementById('sql').textContent = d.sql ? '-- SQL\n' + d.sql + '\n-- 参数: ' + JSON.stringify(d.sql_params||{}) : '';
+    const tb = document.getElementById('tablebox');
+    if(d.rows && d.rows.length){
+      let html = '<table><tr>' + d.columns.map(c=>`<th>${c}</th>`).join('') + '</tr>';
+      for(const row of d.rows.slice(0,20)) html += '<tr>' + row.map(v=>`<td>${v}</td>`).join('') + '</tr>';
+      tb.innerHTML = html + '</table>';
+    } else tb.innerHTML = '';
+  }catch(e){
+    alert('请求失败: ' + e);
+  }finally{
+    btn.disabled = false; btn.textContent = '查询';
+  }
+}
+</script>
+</body>
+</html>
