@@ -1,0 +1,13 @@
+numpy>=1.26
+torch>=2.2
+jieba>=0.42.1
+pydantic>=2.6
+sqlalchemy>=2.0
+pyyaml>=6.0
+fastapi>=0.110
+uvicorn[standard]>=0.29
+
+# 可选（LLM 生成引擎与 LoRA 微调，默认关闭）
+# pymysql>=1.1        # MySQL 后端
+# openai              # 如需官方 SDK 调用兼容接口
+# transformers peft datasets accelerate   # GPU 机器上微调 Qwen

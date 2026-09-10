@@ -1,0 +1,57 @@
+# 掌柜问数 · NL2SQL 智能数据分析系统 · 项目配置
+project:
+  name: "zhanggui-wenshu"
+
+database:
+  # 数据访问层基于 SQLAlchemy，backend 可切换：
+  #   sqlite: 本地零依赖跑通（data/db/zhanggui.db）
+  #   mysql:  生产配置，DDL 见 app/db/ddl_mysql.sql
+  backend: "sqlite"
+  sqlite_path: "data/db/zhanggui.db"
+  mysql:
+    host: "127.0.0.1"
+    port: 3306
+    user: "zhanggui"
+    password: "changeme"
+    database: "zhanggui_wenshu"
+    charset: "utf8mb4"
+
+nlu:
+  # DIET 风格双任务模型（intent 分类 + slot 识别）
+  model_path: "data/models/diet_model.pt"
+  training_log: "data/logs/training_log.json"
+  nlu_data: "app/nlu/nlu_training.json"
+  max_seq_len: 24
+  embed_dim: 96
+  n_heads: 4
+  n_layers: 2
+  epochs: 30
+  batch_size: 16
+  lr: 0.002
+  weight_decay: 0.01
+  dropout: 0.2
+  slot_loss_weight: 3.0
+  seed: 42
+
+schema_linking:
+  # 同义词词典 + 编辑距离模糊匹配阈值
+  fuzzy_threshold: 0.55
+  max_tables_in_context: 4
+
+generation:
+  # OpenAI 兼容接口；为空时使用规则模板引擎（离线可跑通）
+  api_base: ""
+  api_key: ""
+  model: "qwen-plus"
+  temperature: 0.1
+  timeout_seconds: 30
+  # 可复用 Prompt 模板存放目录
+  prompts_dir: "app/generation/prompts"
+
+answer:
+  row_limit: 50            # 单次返回行数上限（防全表扫描拖垮前端）
+  chart_suggest: true      # 结果结构化时附带图表建议
+
+api:
+  host: "127.0.0.1"
+  port: 8001

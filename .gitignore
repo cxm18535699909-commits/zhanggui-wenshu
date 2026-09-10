@@ -1,0 +1,53 @@
+# ─── Python ───────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ─── 虚拟环境 ─────────────────────────────────────────────
+.venv/
+venv/
+env/
+.env
+.env.local
+
+# ─── 数据库与模型产物（可重建，勿提交）────────────────────
+# data/db/*.db  依赖 build-db 运行当天日期（seed.py 用 datetime.now()
+#               生成近 180 天订单），提交会使仓库随时间失效；
+#               python -m app.cli build-db 约 1.6 秒可精确重建
+# data/models/  python -m app.cli train-nlu 约 27 秒可重建，
+#               固定种子（seed=42）产出字节级一致
+data/db/*.db
+data/db/*.sqlite
+data/models/*.pt
+data/models/*.pth
+data/models/qwen_lora_*/
+
+# ─── 评测与训练报告（由命令生成，勿提交）──────────────────
+# eval 结果依赖运行当天日期（时间词按 date.today() 解析），
+# 提交会造成仓库数字反复变动；复现方式见 README
+data/logs/
+
+# ─── 微调语料（由 export_corpus 生成）─────────────────────
+data/finetune/
+
+# ─── 密钥与本地配置 ───────────────────────────────────────
+*.key
+*.pem
+secrets.yaml
+config.local.yaml
+
+# ─── 编辑器 / 系统 ────────────────────────────────────────
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+.idea/
+.vscode/
+*.swp
